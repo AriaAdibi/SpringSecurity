@@ -1,0 +1,29 @@
+spring:
+  jpa:
+    open-in-view: false
+#    defer-datasource-initialization: true
+    show-sql: true
+    generate-ddl: true # Vendor independent way of requesting DDL generation
+    database-platform: org.hibernate.dialect.H2Dialect #Sets Dialect
+    properties:
+      hibernate:
+        format_sql: true #Pretifies SQL
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb
+    #    url: jdbc:h2:file:C:/Users/AADIBI/OneDrive - Nakisa/Desktop/H2/MyH2
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+
+logging:
+  level:
+    com.testingground.springsecurity: DEBUG
+#    org.springframework: DEBUG
+    org.hibernate: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+#    web: DEBUG
+
+
