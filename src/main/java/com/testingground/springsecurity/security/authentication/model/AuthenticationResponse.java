@@ -6,4 +6,9 @@ public record AuthenticationResponse(String jWT) {
   public AuthenticationResponse {
     Objects.requireNonNull(jWT);
   }
+
+  public static AuthenticationResponse of(String jWT) {
+    return new AuthenticationResponse(jWT);
+  }
+
 }
