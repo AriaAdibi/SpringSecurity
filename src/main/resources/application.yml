@@ -26,4 +26,10 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
 #    web: DEBUG
 
+application:
+  security:
+    jwt:
+      base64-aes256-encoded-secret-key: snkIKgDWaBilCk4ACEgz/bV/cdeXsQ4FC68kKcOufqc=
+      default-token-longevity: 1800000000000 # 30 min
+
 
