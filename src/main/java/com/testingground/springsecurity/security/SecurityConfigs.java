@@ -16,6 +16,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
+
+import javax.sql.DataSource;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -25,8 +29,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 class SecurityConfigs {
 
-  private final AuthenticationProvider authenticationProvider;
-  private final JWTAuthenticationFilter jWTAuthenticationFilter;
+  private final DataSource dataSource;
 
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
@@ -46,11 +49,24 @@ class SecurityConfigs {
   /* Some Authentication Providers, including DaoAuthenticationProvider, require to have userDetailsService. */
   @Bean
   public UserDetailsService userDetailsService() {
-    return new JdbcUserDetailsManager();
+    return new JdbcUserDetailsManager(this.dataSource);
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+  MvcRequestMatcher.Builder mvc(HandlerMappingIntrospector introspector) {
+    return new MvcRequestMatcher.Builder(introspector);
+  }
+
+  /* MvcRequestMatcher.Builder mvc needed to be autowired as well because requestMachers() had this problem:
+   * "There is more than one mappable servlet in your servlet context", one was "/" the other "/h2-console/".
+   * To specify exactly that Spring MVC RequestMatcher is used this bean creation and autowiring is done.
+   */
+  @Bean
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity httpSecurity,
+      AuthenticationProvider authenticationProvider,
+      JWTAuthenticationFilter jWTAuthenticationFilter,
+      MvcRequestMatcher.Builder mvc) throws Exception {
     return httpSecurity
         /* Not needed since JWT tokens are send via Authentication Header (Custom header with no mechanism)
         as opposed to with Cookies. Cookies are also HTTP header; however, with some preloaded operations
@@ -68,12 +84,20 @@ class SecurityConfigs {
         .authorizeHttpRequests(authorizeHttpRequestsCustomizer -> // TODO Add Roles and (READ/WRITE ..) Authority check
             authorizeHttpRequestsCustomizer
                 // Permit all usually includes some static and documentation URI as well.
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(mvc.pattern("/api/v1/auth/**")).permitAll()
                 .anyRequest().authenticated())
         // Session Management
         .sessionManagement(sessionManagementCustomizer ->
             // So that no session id is created and authentication become stateless
             sessionManagementCustomizer.sessionCreationPolicy(STATELESS))
+        /* Multiple filter can be provided for different authentication/authorization strategies and different
+         * AuthenticationProviders for the way authentication is made; for example, whether use is obtained by
+         * DAO or LDAP. However, all is implementation and need dependent the differentiating line is a blurry.
+         *
+         * Here jWTAuthenticationFilter is first and if it did not authenticate a user
+         * UsernamePasswordAuthenticationFilter which is run after sees that the user is not authenticated and will
+         * do its routing.
+         */
         // Authentication Providers
         .authenticationProvider(authenticationProvider)
         // Filters
