@@ -21,10 +21,9 @@ spring:
 logging:
   level:
     com.testingground.springsecurity: DEBUG
-#    org.springframework: DEBUG
+#    org.springframework.security: TRACE
     org.hibernate: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
-#    web: DEBUG
 
 application:
   security:
