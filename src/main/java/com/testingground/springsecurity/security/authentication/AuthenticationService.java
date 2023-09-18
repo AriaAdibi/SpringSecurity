@@ -8,8 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 
@@ -34,14 +36,18 @@ public class AuthenticationService {
   }
 
   public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) {
-    final var username = authenticationRequest.username();
-    authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(username, authenticationRequest.password()));
+    /* Authentication Manager uses (only) DaoAuthenticationProvider. This provider like most,
+     * returns UserDetails as Principal Object.
+     */
+    var authentication = authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(authenticationRequest.username(), authenticationRequest.password()));
 
-    // Authentication was successful
-    var userDetails = userDetailsManager.loadUserByUsername(username);
-    // TODO Refresh? Revoke Tokens? Save Token?
-    return AuthenticationResponse.of(jWTService.generateToken(userDetails));
+    if (authentication.getPrincipal() instanceof UserDetails userDetails) {
+      // TODO Refresh? Revoke Tokens? Save Token?
+      return AuthenticationResponse.of(jWTService.generateToken(userDetails));
+    } else {
+      throw new AuthenticationServiceException("Unsupported Authentication Principal Type");
+    }
   }
 
   public void refreshToken(HttpServletRequest request, HttpServletResponse response) {
