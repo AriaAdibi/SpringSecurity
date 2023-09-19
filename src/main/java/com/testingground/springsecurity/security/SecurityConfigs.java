@@ -33,6 +33,13 @@ class SecurityConfigs {
 
   private final DataSource dataSource;
 
+  /* The following makes the AuthenticationManager "Globally" (Spring context) accessible.
+   * It can be locally accessed like (HttpSecurity)http.getSharedObject(AuthenticationManager.class);
+   * To configure the HttpSecurity with a custom AuthenticatorManager:
+   * 1. Have a look at the official migration tutorial and the use of
+   * AbstractHttpConfigurer<MyCustomDsl, HttpSecurity> which can be applied to http at the end with http.apply()
+   * 2. Just use the .authenticationManager() method to set the new custom AuthenticationManager.
+   */
   @Bean
   public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
     return authConfig.getAuthenticationManager();
@@ -48,14 +55,17 @@ class SecurityConfigs {
     return authProvider;
   }
 
-  /* Some Authentication Providers, including DaoAuthenticationProvider, require to have userDetailsService. */
+  /* Some Authentication Providers, including DaoAuthenticationProvider, require to have userDetailsService.
+   * I provide UserDetailsManager instead which extends UserDetailsService. With Manager user creation,
+   * deletion, etc. can also be done.
+   */
   @Bean
   public UserDetailsService userDetailsService() {
     return new JdbcUserDetailsManager(this.dataSource);
   }
 
   @Bean
-  MvcRequestMatcher.Builder mvc(HandlerMappingIntrospector introspector) {
+  MvcRequestMatcher.Builder mVCRequestMatcherBuilder(HandlerMappingIntrospector introspector) {
     return new MvcRequestMatcher.Builder(introspector);
   }
 
