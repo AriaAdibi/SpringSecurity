@@ -12,6 +12,7 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
+  private final PasswordEncoder passwordEncoder;
   private final UserDetailsManager userDetailsManager;
   private final JWTService jWTService;
   private final AuthenticationManager authenticationManager;
@@ -27,7 +29,7 @@ public class AuthenticationService {
   public AuthenticationResponse register(RegisterRequest registerRequest) {
     var user = User.builder() // TODO Use custom user with more information later
         .username(registerRequest.username())
-        .password(registerRequest.password())
+        .password(passwordEncoder.encode(registerRequest.password()))
         .build(); // TODO Add roles, password encoder. possibly authorities and ...
 
     userDetailsManager.createUser(user);

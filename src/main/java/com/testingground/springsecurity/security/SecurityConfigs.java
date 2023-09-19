@@ -18,6 +18,8 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -74,8 +76,28 @@ class SecurityConfigs {
     var jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
     // Can create default users here:
     jdbcUserDetailsManager.createUser( // TODO Give full admin authority
-        User.withUsername("AriaTheGreat").password("KingOfKings").build());
+        User.withUsername("AriaTheGreat")
+            /* BCryptPasswordEncoder of "StrongPassword". "{bcrypt}" is added because DelegatingPasswordEncoder
+             * is used, and the algorithm needs to be provided. For more info refer to DelegatingPasswordEncoder.
+             *
+             * It is recommended that if user is created with code like this to have the password
+             * encoded externally, the reasoning is that if not the password is compiled into the
+             * source code and then is included in memory at the time of creation. This means there
+             * are still ways to recover the plain text password making it unsafe.
+             */
+            .password("{bcrypt}$2a$12$v4qupXChBvh0htucys/CDedGtyeREbatnOwgLruKkG5IeK8Vr9gli")
+            .authorities("KingOfKings") // = roles() but in roles the strings get the (modifiable) prefix ROLE_
+            .build());
     return jdbcUserDetailsManager;
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    /* Instead of using one password encoder, using the default DelegatingPasswordEncoder.
+     * Of course, custom DelegatingPasswordEncoder can be created as well. The encoding,
+     * saves the algorithm in the encoded String like {alg}hashCode. Format also can be changed.
+     */
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
   }
 
   @Bean
