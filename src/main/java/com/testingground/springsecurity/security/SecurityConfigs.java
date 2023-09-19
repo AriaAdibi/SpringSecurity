@@ -12,11 +12,13 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 import javax.sql.DataSource;
@@ -66,7 +68,7 @@ class SecurityConfigs {
       HttpSecurity httpSecurity,
       AuthenticationProvider authenticationProvider,
       JWTAuthenticationFilter jWTAuthenticationFilter,
-      MvcRequestMatcher.Builder mvc) throws Exception {
+      MvcRequestMatcher.Builder mVCRequestMatcherBuilder) throws Exception {
     return httpSecurity
         /* Not needed since JWT tokens are send via Authentication Header (Custom header with no mechanism)
         as opposed to with Cookies. Cookies are also HTTP header; however, with some preloaded operations
@@ -80,11 +82,29 @@ class SecurityConfigs {
         3. Cookies are domain specific.
         */
         .csrf(AbstractHttpConfigurer::disable)
+        /* By default, Spring Security disables rendering within an iframe because allowing a webpage to be
+         * added to a frame can be a security issue, for example Clickjacking. Since H2 console runs within a
+         * frame so while Spring security is enabled, frame options has to be disabled explicitly, in order to
+         * get the H2 console working.
+         *
+         * In general there are two possible directives for X-Frame-Options, which are DENY or SAMEORIGIN,
+         * The FrameOption either needs to be disabled or changed to SameOrigin for h2-console to work properly.
+         */
+        .headers(headersCustomizer ->
+            headersCustomizer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
         // Authorizations
         .authorizeHttpRequests(authorizeHttpRequestsCustomizer -> // TODO Add Roles and (READ/WRITE ..) Authority check
             authorizeHttpRequestsCustomizer
-                // Permit all usually includes some static and documentation URI as well.
-                .requestMatchers(mvc.pattern("/api/v1/auth/**")).permitAll()
+                // PermitAll() usually includes some static and documentation URI as well.
+                .requestMatchers(
+                    // The pattern is not part of Spring MVC, that is why antMacher is used instead.
+                    AntPathRequestMatcher.antMatcher("/h2-console/**"),
+                    mVCRequestMatcherBuilder.pattern("/api/v1/auth/**"),
+                    /* Need to add this because for cases where there is error spring redirects to this URL,
+                     * and if not permitted the FORBIDDEN error is encountered without explanation.
+                     */
+                    mVCRequestMatcherBuilder.pattern("/error/**"))
+                .permitAll()
                 .anyRequest().authenticated())
         // Session Management
         .sessionManagement(sessionManagementCustomizer ->
