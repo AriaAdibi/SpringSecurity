@@ -4,6 +4,8 @@ import com.testingground.springsecurity.security.authentication.JWTAuthenticatio
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -13,7 +15,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -31,7 +35,13 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @RequiredArgsConstructor
 class SecurityConfigs {
 
-  private final DataSource dataSource;
+  @Bean
+  public DataSource dataSource() {
+    return new EmbeddedDatabaseBuilder()
+        .setType(EmbeddedDatabaseType.H2)
+        .addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION)
+        .build(); // Creating the default user/authorities tables
+  }
 
   /* The following makes the AuthenticationManager "Globally" (Spring context) accessible.
    * It can be locally accessed like (HttpSecurity)http.getSharedObject(AuthenticationManager.class);
@@ -49,9 +59,9 @@ class SecurityConfigs {
    * Both AuthenticationManager and Provider can be added to httpSecurity.
    */
   @Bean
-  public AuthenticationProvider authenticationProvider() {
+  public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService) {
     var authProvider = new DaoAuthenticationProvider();
-    authProvider.setUserDetailsService(userDetailsService());
+    authProvider.setUserDetailsService(userDetailsService);
     return authProvider;
   }
 
@@ -60,8 +70,12 @@ class SecurityConfigs {
    * deletion, etc. can also be done.
    */
   @Bean
-  public UserDetailsService userDetailsService() {
-    return new JdbcUserDetailsManager(this.dataSource);
+  public UserDetailsService userDetailsService(DataSource dataSource) {
+    var jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+    // Can create default users here:
+    jdbcUserDetailsManager.createUser( // TODO Give full admin authority
+        User.withUsername("AriaTheGreat").password("KingOfKings").build());
+    return jdbcUserDetailsManager;
   }
 
   @Bean
