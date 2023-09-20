@@ -7,7 +7,8 @@ public record RegisterRequest(
     String lastName,
     String email,
     String username,
-    String password) {
+    String password,
+    String[] authorities) {
   public RegisterRequest {
     Objects.requireNonNull(firstName, "First name should be provided.");
     Objects.requireNonNull(lastName, "Last name should be provided.");

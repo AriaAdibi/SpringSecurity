@@ -75,7 +75,7 @@ class SecurityConfigs {
   public UserDetailsService userDetailsService(DataSource dataSource) {
     var jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
     // Can create default users here:
-    jdbcUserDetailsManager.createUser( // TODO Give full admin authority
+    jdbcUserDetailsManager.createUser(
         User.withUsername("AriaTheGreat")
             /* BCryptPasswordEncoder of "StrongPassword". "{bcrypt}" is added because DelegatingPasswordEncoder
              * is used, and the algorithm needs to be provided. For more info refer to DelegatingPasswordEncoder.
@@ -139,7 +139,7 @@ class SecurityConfigs {
         .headers(headersCustomizer ->
             headersCustomizer.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
         // Authorizations
-        .authorizeHttpRequests(authorizeHttpRequestsCustomizer -> // TODO Add Roles and (READ/WRITE ..) Authority check
+        .authorizeHttpRequests(authorizeHttpRequestsCustomizer ->
             authorizeHttpRequestsCustomizer
                 // PermitAll() usually includes some static and documentation URI as well.
                 .requestMatchers(
@@ -161,8 +161,8 @@ class SecurityConfigs {
          * DAO or LDAP. However, all is implementation and need dependent the differentiating line is a blurry.
          *
          * Here jWTAuthenticationFilter is first and if it did not authenticate a user
-         * UsernamePasswordAuthenticationFilter which is run after sees that the user is not authenticated and will
-         * do its routing.
+         * UsernamePasswordAuthenticationFilter which is run after sees that the user is not authenticated and
+         * will do its routing.
          */
         // Authentication Providers
         .authenticationProvider(authenticationProvider)

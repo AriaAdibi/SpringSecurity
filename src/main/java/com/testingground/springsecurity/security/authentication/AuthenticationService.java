@@ -25,12 +25,13 @@ public class AuthenticationService {
   private final JWTService jWTService;
   private final AuthenticationManager authenticationManager;
 
-  // TODO Distinguish between roles
   public AuthenticationResponse register(RegisterRequest registerRequest) {
     var user = User.builder() // TODO Use custom user with more information later
         .username(registerRequest.username())
         .password(passwordEncoder.encode(registerRequest.password()))
-        .build(); // TODO Add roles, password encoder. possibly authorities and ...
+        // Same as role(); however, latter put a prefix defaulted to ROLE_
+        .authorities(registerRequest.authorities())
+        .build();
 
     userDetailsManager.createUser(user);
     // TODO Refresh? Save Token?
